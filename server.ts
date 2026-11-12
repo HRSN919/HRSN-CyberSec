@@ -11,8 +11,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const PORT = 3000;
-const DATA_DIR = path.resolve(process.cwd(), 'data');
+const PORT = Number(process.env.PORT || 3000);
+const DATA_DIR = process.env.HRSN_DATA_DIR || path.resolve(process.cwd(), 'data');
 const STORE_FILE = path.join(DATA_DIR, 'hrsn_store.json');
 const DEFAULT_BYHRSN_ENDPOINT =
   process.env.BYHRSN_SYNC_URL || 'https://byhrsn.com/api/v1/cli-register';
@@ -943,7 +943,7 @@ async function startServer() {
     });
   }
 
-  httpServer.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, '127.0.0.1', () => {
     console.log(`HRSN CyberSec server listening on http://0.0.0.0:${PORT}`);
   });
 }
