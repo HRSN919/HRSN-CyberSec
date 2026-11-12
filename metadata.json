@@ -1,0 +1,6 @@
+{
+  "name": "HRSN CyberSec CLI",
+  "description": "اسکنر آسیب‌پذیری‌های وب مبتنی بر پایتون برای بررسی هدرهای امنیتی، SSL/TLS و تست پورت‌ها - ساخته شده توسط byhrsn.com",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
