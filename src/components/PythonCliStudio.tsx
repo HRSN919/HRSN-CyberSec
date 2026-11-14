@@ -16,11 +16,11 @@ export const PythonCliStudio: React.FC<PythonCliStudioProps> = ({ user }) => {
   const pythonCode = useMemo(
     () =>
       generatePythonCliScript({
-        defaultSyncUrl: user.byhrsnEndpoint || 'https://byhrsn.com/api/v1/cli-register',
+        defaultSyncUrl: 'https://byhrsn.com/api/v1/cli-register',
         defaultProject,
         includePorts,
       }),
-    [user.byhrsnEndpoint, defaultProject, includePorts]
+    [defaultProject, includePorts]
   );
 
   const batchCode = useMemo(() => generateWindowsBatchScript(), []);

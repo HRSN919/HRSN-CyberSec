@@ -50,10 +50,10 @@ export const UserGuideView: React.FC = () => {
           <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
               <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span>۴. ثبت‌نام با شماره موبایل در byhrsn.com</span>
+              <span>۴. خروجی گزارش‌های TXT و JSON</span>
             </div>
             <p className="text-xs leading-6 text-slate-600 dark:text-slate-400">
-              در اولین اجرا، نام و شماره موبایل کاربر ثبت می‌شود. مشخصات در پروفایل محلی ذخیره شده و همزمان به وب‌سرویس ثبت‌نام سایت byhrsn.com ارسال می‌گردد.
+              پس از اتمام هر اسکن، می‌توانید گزارش کامل ممیزی را در قالب فایل متنی خوانا (TXT) برای ارائه مدیریتی یا فایل ساخت‌یافته JSON برای تحلیل‌های خودکار دریافت کنید.
             </p>
           </div>
         </div>

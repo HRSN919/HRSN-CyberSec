@@ -22,11 +22,38 @@ interface StoredUser {
   fullName: string;
   mobile: string;
   organization: string;
+  passwordHash?: string;
   registeredAt: string;
   byhrsnEndpoint: string;
   byhrsnSyncStatus: 'synced' | 'pending_remote' | 'local_only';
   byhrsnSyncMessage: string;
   lastSyncAttempt?: string;
+}
+
+function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const derived = crypto.scryptSync(password, salt, 64).toString('hex');
+  return `${salt}:${derived}`;
+}
+
+function verifyPassword(password: string, storedHash: string): boolean {
+  const parts = storedHash.split(':');
+  if (parts.length !== 2) return false;
+  const [salt, keyHex] = parts;
+  const keyBuf = Buffer.from(keyHex, 'hex');
+  const derivedBuf = crypto.scryptSync(password, salt, 64);
+  if (keyBuf.length !== derivedBuf.length) return false;
+  return crypto.timingSafeEqual(keyBuf, derivedBuf);
+}
+
+function sanitizeUser(user: StoredUser) {
+  return {
+    id: user.id,
+    fullName: user.fullName,
+    mobile: user.mobile,
+    organization: user.organization,
+    registeredAt: user.registeredAt,
+  };
 }
 
 interface StoredProject {
@@ -595,62 +622,108 @@ async function startServer() {
   });
 
   app.post('/api/auth/register', async (req, res) => {
-    const { fullName, mobile, organization, byhrsnEndpoint } = req.body || {};
+    const { fullName, mobile, organization, password } = req.body || {};
     if (!fullName || typeof fullName !== 'string' || fullName.trim().length < 2) {
       return res.status(400).json({ error: 'لطفاً نام و نام خانوادگی معتبر وارد کنید.' });
     }
     if (!mobile || typeof mobile !== 'string' || !isValidMobile(mobile)) {
       return res.status(400).json({ error: 'شماره موبایل معتبر نیست (مثال: 09123456789).' });
     }
+    if (!password || typeof password !== 'string' || password.length < 6) {
+      return res.status(400).json({ error: 'رمز عبور باید حداقل ۶ کاراکتر باشد.' });
+    }
 
     const normMobile = normalizeMobile(mobile);
-    const endpoint =
-      typeof byhrsnEndpoint === 'string' && byhrsnEndpoint.trim()
-        ? byhrsnEndpoint.trim()
-        : DEFAULT_BYHRSN_ENDPOINT;
-
     const store = ensureStore();
     const existingIdx = store.users.findIndex((u) => u.mobile === normMobile);
-    const now = new Date().toISOString();
+    if (existingIdx >= 0) {
+      return res.status(409).json({
+        error: 'این شماره موبایل قبلاً ثبت‌نام شده است. لطفاً از بخش ورود استفاده کنید.',
+      });
+    }
 
+    const now = new Date().toISOString();
     const user: StoredUser = {
-      id: existingIdx >= 0 ? store.users[existingIdx].id : crypto.randomUUID(),
+      id: crypto.randomUUID(),
       fullName: fullName.trim(),
       mobile: normMobile,
       organization: typeof organization === 'string' ? organization.trim() : '',
-      registeredAt: existingIdx >= 0 ? store.users[existingIdx].registeredAt : now,
-      byhrsnEndpoint: endpoint,
+      passwordHash: hashPassword(password),
+      registeredAt: now,
+      byhrsnEndpoint: DEFAULT_BYHRSN_ENDPOINT,
       byhrsnSyncStatus: 'local_only',
-      byhrsnSyncMessage: 'در حال بررسی ارتباط با سرور byhrsn.com...',
+      byhrsnSyncMessage: '',
       lastSyncAttempt: now,
     };
 
-    const syncResult = await attemptByhrsnSync(user, endpoint);
+    const syncResult = await attemptByhrsnSync(user, DEFAULT_BYHRSN_ENDPOINT);
     user.byhrsnSyncStatus = syncResult.status;
     user.byhrsnSyncMessage = syncResult.message;
 
-    if (existingIdx >= 0) {
-      store.users[existingIdx] = user;
-    } else {
-      store.users.push(user);
-    }
+    store.users.push(user);
     saveStore(store);
 
-    return res.json({ user });
+    return res.json({ user: sanitizeUser(user) });
   });
 
   app.post('/api/auth/login', (req, res) => {
-    const { mobile } = req.body || {};
+    const { mobile, password } = req.body || {};
     if (!mobile || typeof mobile !== 'string' || !isValidMobile(mobile)) {
       return res.status(400).json({ error: 'فرمت شماره موبایل معتبر نیست.' });
     }
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({ error: 'لطفاً رمز عبور را وارد کنید.' });
+    }
+
     const normMobile = normalizeMobile(mobile);
     const store = ensureStore();
-    const user = store.users.find((u) => u.mobile === normMobile);
-    if (!user) {
-      return res.status(404).json({ error: 'این شماره موبایل هنوز ثبت‌نام نشده است.' });
+    const idx = store.users.findIndex((u) => u.mobile === normMobile);
+    if (idx < 0) {
+      return res.status(401).json({ error: 'شماره موبایل یا رمز عبور اشتباه است.' });
     }
-    return res.json({ user });
+
+    const user = store.users[idx];
+    if (user.passwordHash) {
+      if (!verifyPassword(password, user.passwordHash)) {
+        return res.status(401).json({ error: 'شماره موبایل یا رمز عبور اشتباه است.' });
+      }
+    } else {
+      if (password.length < 6) {
+        return res.status(400).json({ error: 'رمز عبور باید حداقل ۶ کاراکتر باشد.' });
+      }
+      store.users[idx].passwordHash = hashPassword(password);
+      saveStore(store);
+    }
+
+    return res.json({ user: sanitizeUser(store.users[idx]) });
+  });
+
+  app.post('/api/auth/change-password', (req, res) => {
+    const { mobile, currentPassword, newPassword } = req.body || {};
+    if (!mobile || typeof mobile !== 'string' || !isValidMobile(mobile)) {
+      return res.status(400).json({ error: 'شماره موبایل معتبر نیست.' });
+    }
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6) {
+      return res.status(400).json({ error: 'رمز عبور جدید باید حداقل ۶ کاراکتر باشد.' });
+    }
+
+    const normMobile = normalizeMobile(mobile);
+    const store = ensureStore();
+    const idx = store.users.findIndex((u) => u.mobile === normMobile);
+    if (idx < 0) {
+      return res.status(404).json({ error: 'حساب کاربری یافت نشد.' });
+    }
+
+    const user = store.users[idx];
+    if (user.passwordHash) {
+      if (!currentPassword || typeof currentPassword !== 'string' || !verifyPassword(currentPassword, user.passwordHash)) {
+        return res.status(401).json({ error: 'رمز عبور فعلی اشتباه است.' });
+      }
+    }
+
+    store.users[idx].passwordHash = hashPassword(newPassword);
+    saveStore(store);
+    return res.json({ updated: true });
   });
 
   app.get('/api/auth/user/:mobile', (req, res) => {
@@ -660,30 +733,7 @@ async function startServer() {
     if (!user) {
       return res.status(404).json({ error: 'کاربر یافت نشد.' });
     }
-    return res.json({ user });
-  });
-
-  app.post('/api/auth/sync-byhrsn', async (req, res) => {
-    const { mobile, byhrsnEndpoint } = req.body || {};
-    const normMobile = normalizeMobile(String(mobile || ''));
-    const store = ensureStore();
-    const idx = store.users.findIndex((u) => u.mobile === normMobile);
-    if (idx < 0) {
-      return res.status(404).json({ error: 'حساب کاربری با این شماره موبایل یافت نشد.' });
-    }
-    const endpoint =
-      typeof byhrsnEndpoint === 'string' && byhrsnEndpoint.trim()
-        ? byhrsnEndpoint.trim()
-        : store.users[idx].byhrsnEndpoint || DEFAULT_BYHRSN_ENDPOINT;
-
-    const syncResult = await attemptByhrsnSync(store.users[idx], endpoint);
-    store.users[idx].byhrsnEndpoint = endpoint;
-    store.users[idx].byhrsnSyncStatus = syncResult.status;
-    store.users[idx].byhrsnSyncMessage = syncResult.message;
-    store.users[idx].lastSyncAttempt = new Date().toISOString();
-    saveStore(store);
-
-    return res.json({ user: store.users[idx] });
+    return res.json({ user: sanitizeUser(user) });
   });
 
   app.get('/api/projects', (req, res) => {
@@ -943,8 +993,9 @@ async function startServer() {
     });
   }
 
-  httpServer.listen(PORT, '127.0.0.1', () => {
-    console.log(`HRSN CyberSec server listening on http://0.0.0.0:${PORT}`);
+  const HOST = process.env.HOST || '0.0.0.0';
+  httpServer.listen(PORT, HOST, () => {
+    console.log(`HRSN CyberSec server listening on http://${HOST}:${PORT}`);
   });
 }
 

@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Phone, User, Building2, ArrowLeft, Globe, CheckCircle2, AlertCircle } from 'lucide-react';
+import {
+  ShieldCheck,
+  Phone,
+  User,
+  Building2,
+  ArrowLeft,
+  Lock,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  AlertCircle,
+} from 'lucide-react';
 import { UserRegistration } from '../types';
 
 interface RegistrationViewProps {
@@ -17,7 +28,9 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('');
   const [organization, setOrganization] = useState('');
-  const [byhrsnEndpoint, setByhrsnEndpoint] = useState('https://byhrsn.com/api/v1/cli-register');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [agreedEthics, setAgreedEthics] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,9 +39,19 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
     e.preventDefault();
     setError(null);
 
-    if (mode === 'register' && !agreedEthics) {
-      setError('تایید تعهدنامه استفاده قانونی و اخلاقی از ابزار الزامی است.');
-      return;
+    if (mode === 'register') {
+      if (password.length < 6) {
+        setError('رمز عبور باید حداقل ۶ کاراکتر باشد.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError('رمز عبور و تکرار آن یکسان نیستند.');
+        return;
+      }
+      if (!agreedEthics) {
+        setError('تایید تعهدنامه استفاده قانونی و اخلاقی از ابزار الزامی است.');
+        return;
+      }
     }
 
     setLoading(true);
@@ -36,8 +59,8 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
       const url = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
       const body =
         mode === 'register'
-          ? { fullName, mobile, organization, byhrsnEndpoint }
-          : { mobile };
+          ? { fullName, mobile, organization, password }
+          : { mobile, password };
 
       const res = await fetch(url, {
         method: 'POST',
@@ -46,7 +69,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'خطا در ثبت اطلاعات.');
+        throw new Error(data.error || 'خطا در ورود یا ثبت اطلاعات.');
       }
       onSuccess(data.user);
     } catch (err: any) {
@@ -93,10 +116,13 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
               <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
                 <span>اسکنر امنیت وب</span>
                 <span aria-hidden="true">·</span>
-                <span>نسخه دسکتاپ پایتون و کنسول وب</span>
+                <span>نسخه دسکتاپ و کنسول وب</span>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-bold leading-snug text-slate-900 dark:text-white" style={{ textWrap: 'balance' }}>
+              <h1
+                className="text-2xl sm:text-3xl font-bold leading-snug text-slate-900 dark:text-white"
+                style={{ textWrap: 'balance' }}
+              >
                 ابزار خودکار تحلیل هدرهای امنیتی، SSL/TLS و بررسی پورت‌ها
               </h1>
 
@@ -120,7 +146,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-1 shrink-0" />
                   <p className="text-xs leading-6 text-slate-600 dark:text-slate-300">
-                    ثبت‌نام اولیه بر مبنای شماره موبایل با همگام‌سازی خودکار به درگاه سایت byhrsn.com و خروجی اسکریپت ویندوزی پایتون
+                    مدیریت پروژه‌های ارزیابی امنیت همراه با خروجی گزارش TXT و JSON و نسخه خط فرمان ویندوزی پایتون
                   </p>
                 </div>
               </div>
@@ -136,12 +162,12 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
             <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                  {mode === 'register' ? 'ثبت‌نام اولیه کاربر' : 'ورود با شماره موبایل'}
+                  {mode === 'register' ? 'ثبت‌نام اولیه کاربر' : 'ورود به حساب کاربری'}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   {mode === 'register'
-                    ? 'اطلاعات ثبت‌نام بر مبنای شماره موبایل ذخیره و به سرور byhrsn.com ارسال می‌شود.'
-                    : 'با شماره موبایلی که قبلاً ثبت کرده‌اید وارد پنل پروژه‌ها شوید.'}
+                    ? 'برای دسترسی به پنل اسکنر و پروژه‌ها حساب کاربری خود را ایجاد کنید.'
+                    : 'شماره موبایل و رمز عبور خود را وارد کنید.'}
                 </p>
               </div>
 
@@ -186,27 +212,45 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {mode === 'register' && (
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                    نام و نام خانوادگی متخصص
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      required
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="مثال: حسام رضایی"
-                      className="w-full pr-10 pl-4 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                      نام و نام خانوادگی متخصص
+                    </label>
+                    <div className="relative">
+                      <User className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        required
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="مثال: حسام رضایی"
+                        className="w-full pr-10 pl-4 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                      سازمان یا تیم امنیت (اختیاری)
+                    </label>
+                    <div className="relative">
+                      <Building2 className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={organization}
+                        onChange={(e) => setOrganization(e.target.value)}
+                        placeholder="تیم امنیت یا شرکت"
+                        className="w-full pr-10 pl-4 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
 
               <div>
                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                  شماره موبایل (شناسه اصلی ثبت‌نام)
+                  شماره موبایل
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
@@ -222,54 +266,68 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
                 </div>
               </div>
 
-              {mode === 'register' && (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                        سازمان یا تیم امنیت (اختیاری)
-                      </label>
-                      <div className="relative">
-                        <Building2 className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          value={organization}
-                          onChange={(e) => setOrganization(e.target.value)}
-                          placeholder="تیم امنیت یا شرکت"
-                          className="w-full pr-10 pl-4 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
+              <div className={mode === 'register' ? 'grid grid-cols-1 sm:grid-cols-2 gap-4' : ''}>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    رمز عبور
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      dir="ltr"
+                      required
+                      minLength={mode === 'register' ? 6 : 1}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="حداقل ۶ کاراکتر"
+                      className="w-full pr-10 pl-10 py-2.5 text-sm font-mono rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      aria-label={showPassword ? 'مخفی کردن رمز عبور' : 'نمایش رمز عبور'}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
 
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                        مسیر ذخیره در byhrsn.com
-                      </label>
-                      <div className="relative">
-                        <Globe className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="url"
-                          dir="ltr"
-                          value={byhrsnEndpoint}
-                          onChange={(e) => setByhrsnEndpoint(e.target.value)}
-                          className="w-full pr-10 pl-4 py-2.5 text-xs font-mono rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
+                {mode === 'register' && (
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                      تکرار رمز عبور
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        dir="ltr"
+                        required
+                        minLength={6}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="تکرار رمز عبور"
+                        className="w-full pr-10 pl-4 py-2.5 text-sm font-mono rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
                     </div>
                   </div>
+                )}
+              </div>
 
-                  <label className="flex items-start gap-2.5 pt-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={agreedEthics}
-                      onChange={(e) => setAgreedEthics(e.target.checked)}
-                      className="mt-1 rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-xs leading-5 text-slate-600 dark:text-slate-400">
-                      متعهد می‌شوم از این ابزار صرفاً برای ارزیابی امنیتی دامنه‌های متعلق به خود یا دارای مجوز رسمی استفاده کنم.
-                    </span>
-                  </label>
-                </>
+              {mode === 'register' && (
+                <label className="flex items-start gap-2.5 pt-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={agreedEthics}
+                    onChange={(e) => setAgreedEthics(e.target.checked)}
+                    className="mt-1 rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-xs leading-5 text-slate-600 dark:text-slate-400">
+                    متعهد می‌شوم از این ابزار صرفاً برای ارزیابی امنیتی دامنه‌های متعلق به خود یا دارای مجوز رسمی استفاده کنم.
+                  </span>
+                </label>
               )}
 
               <div className="pt-2">

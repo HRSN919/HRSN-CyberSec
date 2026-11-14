@@ -145,7 +145,7 @@ export default function App() {
     { id: 'projects', label: 'پروژه‌ها و گزارش‌ها', icon: FolderKanban },
     { id: 'python-cli', label: 'نسخه ویندوزی پایتون', icon: TerminalSquare },
     { id: 'guide', label: 'راهنمای کاربری', icon: BookOpen },
-    { id: 'account', label: 'حساب و byhrsn.com', icon: UserCheck },
+    { id: 'account', label: 'حساب کاربری', icon: UserCheck },
   ];
 
   const sectionTitle = navItems.find((n) => n.id === section)?.label || '';

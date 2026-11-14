@@ -6,10 +6,6 @@ export interface UserRegistration {
   mobile: string;
   organization: string;
   registeredAt: string;
-  byhrsnEndpoint: string;
-  byhrsnSyncStatus: 'synced' | 'pending_remote' | 'local_only';
-  byhrsnSyncMessage: string;
-  lastSyncAttempt?: string;
 }
 
 export interface Project {

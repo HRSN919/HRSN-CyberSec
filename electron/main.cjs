@@ -58,6 +58,7 @@ async function createWindow() {
 
 app.whenReady().then(async () => {
   process.env.NODE_ENV = 'production';
+  process.env.HOST = '127.0.0.1';
   process.env.PORT = String(APP_PORT);
   process.env.HRSN_DATA_DIR = path.join(app.getPath('userData'), 'data');
   // app.getAppPath() points inside app.asar; do not use process.chdir() on it.
