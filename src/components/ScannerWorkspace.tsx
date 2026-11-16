@@ -12,9 +12,11 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
+  BarChart3,
 } from 'lucide-react';
 import { Project, ScanRecord, UserRegistration } from '../types';
 import { downloadScanAsJson, downloadScanAsTxt } from '../utils/reportExporter';
+import { SingleScanChartPanel } from './ScanCharts';
 
 interface ScannerWorkspaceProps {
   user: UserRegistration;
@@ -45,7 +47,7 @@ export const ScannerWorkspace: React.FC<ScannerWorkspaceProps> = ({
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentScan, setCurrentScan] = useState<ScanRecord | null>(initialScan || null);
-  const [resultTab, setResultTab] = useState<'headers' | 'tls' | 'ports' | 'cli'>('headers');
+  const [resultTab, setResultTab] = useState<'headers' | 'tls' | 'ports' | 'chart' | 'cli'>('chart');
   const [showQuickProj, setShowQuickProj] = useState(false);
   const [newProjName, setNewProjName] = useState('');
 
@@ -359,6 +361,18 @@ export const ScannerWorkspace: React.FC<ScannerWorkspaceProps> = ({
             <div className="flex flex-wrap items-center gap-1 p-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
               <button
                 type="button"
+                onClick={() => setResultTab('chart')}
+                className={`px-3.5 py-2 text-xs font-medium rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 ${
+                  resultTab === 'chart'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+                <span>نمودار اسکن</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setResultTab('headers')}
                 className={`px-3.5 py-2 text-xs font-medium rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 ${
                   resultTab === 'headers'
@@ -408,6 +422,7 @@ export const ScannerWorkspace: React.FC<ScannerWorkspaceProps> = ({
             </div>
 
             <div className="p-6">
+              {resultTab === 'chart' && <SingleScanChartPanel scan={currentScan} />}
               {resultTab === 'headers' && (
                 <div className="space-y-3">
                   {currentScan.headersError && (

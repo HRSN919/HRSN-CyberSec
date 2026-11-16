@@ -3,7 +3,7 @@ import {
   ShieldCheck,
   ScanSearch,
   FolderKanban,
-  TerminalSquare,
+  BarChart3,
   BookOpen,
   UserCheck,
   Sun,
@@ -15,7 +15,7 @@ import { AppSection, Project, ScanRecord, UserRegistration } from './types';
 import { RegistrationView } from './components/RegistrationView';
 import { ScannerWorkspace } from './components/ScannerWorkspace';
 import { ProjectsView } from './components/ProjectsView';
-import { PythonCliStudio } from './components/PythonCliStudio';
+import { ScanChartsView } from './components/ScanCharts';
 import { UserGuideView } from './components/UserGuideView';
 import { AccountSyncView } from './components/AccountSyncView';
 
@@ -142,8 +142,8 @@ export default function App() {
 
   const navItems: { id: AppSection; label: string; icon: typeof ScanSearch }[] = [
     { id: 'scanner', label: 'اسکنر امنیت وب', icon: ScanSearch },
+    { id: 'charts', label: 'نمودار اسکن‌ها', icon: BarChart3 },
     { id: 'projects', label: 'پروژه‌ها و گزارش‌ها', icon: FolderKanban },
-    { id: 'python-cli', label: 'نسخه ویندوزی پایتون', icon: TerminalSquare },
     { id: 'guide', label: 'راهنمای کاربری', icon: BookOpen },
     { id: 'account', label: 'حساب کاربری', icon: UserCheck },
   ];
@@ -246,10 +246,10 @@ export default function App() {
             </button>
             <button
               type="button"
-              onClick={() => setSection('python-cli')}
+              onClick={() => setSection(section === 'charts' ? 'scanner' : 'charts')}
               className="px-4 py-2 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors whitespace-nowrap shrink-0"
             >
-              دریافت نسخه ویندوز (.py)
+              {section === 'charts' ? 'اسکن جدید' : 'نمودار اسکن‌ها'}
             </button>
           </div>
         </header>
@@ -297,7 +297,18 @@ export default function App() {
             />
           )}
 
-          {section === 'python-cli' && <PythonCliStudio user={user} />}
+          {section === 'charts' && (
+            <ScanChartsView
+              scans={scans}
+              projects={projects}
+              onGoToScanner={() => setSection('scanner')}
+              onOpenScanInConsole={(scan) => {
+                setSelectedScan(scan);
+                setActiveProjectId(scan.projectId);
+                setSection('scanner');
+              }}
+            />
+          )}
 
           {section === 'guide' && <UserGuideView />}
 

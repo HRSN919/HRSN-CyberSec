@@ -94,7 +94,7 @@ export interface ScanRecord {
 
 export type AppSection =
   | 'scanner'
+  | 'charts'
   | 'projects'
-  | 'python-cli'
   | 'guide'
   | 'account';
